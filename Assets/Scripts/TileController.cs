@@ -28,6 +28,7 @@ public class TileController : MonoBehaviour
         name = "TILE_" + id + " (" + x + ", " + y + ")";
     }
 
+    
     private void OnMouseDown()
     {
         // Non Selectable conditions
@@ -35,7 +36,7 @@ public class TileController : MonoBehaviour
         {
             return;
         }
-
+        
         // Already selected this tile?
         if (isSelected)
         {
@@ -50,15 +51,23 @@ public class TileController : MonoBehaviour
             }
             else
             {
-                TileController otherTile = previousSelected;
-                // swap tile
-                SwapTile(otherTile, () => {
+                // is this an adjacent tile?
+                if (GetAllAdjacentTiles().Contains(previousSelected))
+                {
+                    TileController otherTile = previousSelected;
+                    previousSelected.Deselect();
+
+                    // swap tile
+                    SwapTile(otherTile, () => {
                     SwapTile(otherTile);
                 });
-
-                // run if cant swap (disabled for now)
-                //previousSelected.Deselect();
-                //Select();
+            }
+                // if not adjacent then change selected
+                else
+                {
+                    previousSelected.Deselect();
+                    Select();
+                }
             }
         }
     }
@@ -106,4 +115,32 @@ public class TileController : MonoBehaviour
 
         onCompleted?.Invoke();
     }
+
+    private static readonly Vector2[] adjacentDirection = new Vector2[] { Vector2.up, Vector2.down, Vector2.left, Vector2.right };
+    
+    #region Adjacent
+
+    private TileController GetAdjacent(Vector2 castDir)
+    {
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, castDir, render.size.x);
+        if (hit)
+        {
+            return hit.collider.GetComponent<TileController>();
+        }
+        return null;
+    }
+
+    public List<TileController> GetAllAdjacentTiles()
+    {
+        List<TileController> adjacentTiles = new List<TileController>();
+
+        for (int i = 0; i < adjacentDirection.Length; i++)
+        {
+            adjacentTiles.Add(GetAdjacent(adjacentDirection[i]));
+        }
+
+        return adjacentTiles;
+    }
+
+    #endregion
 }
