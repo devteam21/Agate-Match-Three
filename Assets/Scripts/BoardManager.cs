@@ -93,4 +93,62 @@ public class BoardManager : MonoBehaviour
         return possibleId;
     }
 
+    public bool IsAnimating
+    {
+        get
+        {
+            return IsSwapping;
+        }
+    }
+    
+    public bool IsSwapping { get; set; }
+    #region Swapping
+
+    public IEnumerator SwapTilePosition(TileController a, TileController b, System.Action onCompleted)
+    {
+        IsSwapping = true;
+
+        Vector2Int indexA = GetTileIndex(a);
+        Vector2Int indexB = GetTileIndex(b);
+
+        tiles[indexA.x, indexA.y] = b;
+        tiles[indexB.x, indexB.y] = a;
+
+        a.ChangeId(a.id, indexB.x, indexB.y);
+        b.ChangeId(b.id, indexA.x, indexA.y);
+
+        bool isRoutineACompleted = false;
+        bool isRoutineBCompleted = false;
+
+        StartCoroutine(a.MoveTilePosition(GetIndexPosition(indexB), () => { isRoutineACompleted = true; }));
+        StartCoroutine(b.MoveTilePosition(GetIndexPosition(indexA), () => { isRoutineBCompleted = true; }));
+
+        yield return new WaitUntil(() => { return isRoutineACompleted && isRoutineBCompleted; });
+
+        onCompleted?.Invoke();
+
+        IsSwapping = false;
+    }
+
+    #endregion
+
+    public Vector2Int GetTileIndex(TileController tile)
+    {
+        for (int x = 0; x < size.x; x++)
+        {
+            for (int y = 0; y < size.y; y++)
+            {
+                if (tile == tiles[x, y]) return new Vector2Int(x, y);
+            }
+        }
+
+        return new Vector2Int(-1, -1);
+    }
+
+    public Vector2 GetIndexPosition(Vector2Int index)
+    {
+        Vector2 tileSize = tilePrefab.GetComponent<SpriteRenderer>().size;
+        return new Vector2(startPosition.x + ((tileSize.x + offsetTile.x) * index.x), startPosition.y + ((tileSize.y + offsetTile.y) * index.y));
+    }
+
 }
